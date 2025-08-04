@@ -3,6 +3,7 @@ import os
 import tempfile
 from pathlib import Path
 from typing import Dict
+from enum import Enum
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -12,7 +13,7 @@ from pydantic import BaseModel
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Schedule C Generator")
+app = FastAPI(title="Tax Form Generator")
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,6 +38,10 @@ try:
     logger.info("reportlab library loaded successfully")
 except ImportError:
     REPORTLAB_AVAILABLE = False
+
+class FormType(str, Enum):
+    SCHEDULE_C = "schedule_c"
+    SCHEDULE_E = "schedule_e"
 
 class ScheduleCData(BaseModel):
     # Personal Information
@@ -121,13 +126,97 @@ class ScheduleCData(BaseModel):
     otherExpense10Desc: str = ""
     otherExpense10Amount: str = ""
 
+class ScheduleEData(BaseModel):
+    # Personal Information
+    name: str
+    ssn: str
+    
+    # Property Information (up to 3 properties)
+    # Property 1
+    property1Type: str = ""
+    property1Address: str = ""
+    property1City: str = ""
+    property1State: str = ""
+    property1ZipCode: str = ""
+    property1RentalDays: str = ""
+    property1PersonalDays: str = ""
+    property1RentalIncome: str = ""
+    property1Royalties: str = ""
+    property1OtherIncome: str = ""
+    property1Advertising: str = ""
+    property1AutoTravel: str = ""
+    property1Cleaning: str = ""
+    property1Commissions: str = ""
+    property1Insurance: str = ""
+    property1Legal: str = ""
+    property1Management: str = ""
+    property1MortgageInterest: str = ""
+    property1OtherInterest: str = ""
+    property1Repairs: str = ""
+    property1Supplies: str = ""
+    property1Taxes: str = ""
+    property1Utilities: str = ""
+    property1Depreciation: str = ""
+    
+    # Property 2
+    property2Type: str = ""
+    property2Address: str = ""
+    property2City: str = ""
+    property2State: str = ""
+    property2ZipCode: str = ""
+    property2RentalDays: str = ""
+    property2PersonalDays: str = ""
+    property2RentalIncome: str = ""
+    property2Royalties: str = ""
+    property2OtherIncome: str = ""
+    property2Advertising: str = ""
+    property2AutoTravel: str = ""
+    property2Cleaning: str = ""
+    property2Commissions: str = ""
+    property2Insurance: str = ""
+    property2Legal: str = ""
+    property2Management: str = ""
+    property2MortgageInterest: str = ""
+    property2OtherInterest: str = ""
+    property2Repairs: str = ""
+    property2Supplies: str = ""
+    property2Taxes: str = ""
+    property2Utilities: str = ""
+    property2Depreciation: str = ""
+    
+    # Property 3
+    property3Type: str = ""
+    property3Address: str = ""
+    property3City: str = ""
+    property3State: str = ""
+    property3ZipCode: str = ""
+    property3RentalDays: str = ""
+    property3PersonalDays: str = ""
+    property3RentalIncome: str = ""
+    property3Royalties: str = ""
+    property3OtherIncome: str = ""
+    property3Advertising: str = ""
+    property3AutoTravel: str = ""
+    property3Cleaning: str = ""
+    property3Commissions: str = ""
+    property3Insurance: str = ""
+    property3Legal: str = ""
+    property3Management: str = ""
+    property3MortgageInterest: str = ""
+    property3OtherInterest: str = ""
+    property3Repairs: str = ""
+    property3Supplies: str = ""
+    property3Taxes: str = ""
+    property3Utilities: str = ""
+    property3Depreciation: str = ""
+
 def safe_float(value: str) -> float:
     try:
         return float(value) if value else 0.0
     except (ValueError, TypeError):
         return 0.0
 
-def calculate_totals(data: ScheduleCData) -> Dict[str, float]:
+def calculate_schedule_c_totals(data: ScheduleCData) -> Dict[str, float]:
     gross_receipts = safe_float(data.grossReceipts)
     returns_allowances = safe_float(data.returnsAllowances)
     other_income = safe_float(data.otherIncome)
@@ -182,7 +271,48 @@ def calculate_totals(data: ScheduleCData) -> Dict[str, float]:
         "net_profit": net_profit
     }
 
-def create_fallback_pdf(data: ScheduleCData, output_path: str) -> bool:
+def calculate_schedule_e_totals(data: ScheduleEData) -> Dict[str, float]:
+    total_income = 0
+    total_expenses = 0
+    
+    # Calculate totals for each property
+    for i in range(1, 4):
+        prefix = f"property{i}"
+        
+        # Income
+        rental_income = safe_float(getattr(data, f"{prefix}RentalIncome", "0"))
+        royalties = safe_float(getattr(data, f"{prefix}Royalties", "0"))
+        other_income = safe_float(getattr(data, f"{prefix}OtherIncome", "0"))
+        total_income += rental_income + royalties + other_income
+        
+        # Expenses
+        expenses = [
+            safe_float(getattr(data, f"{prefix}Advertising", "0")),
+            safe_float(getattr(data, f"{prefix}AutoTravel", "0")),
+            safe_float(getattr(data, f"{prefix}Cleaning", "0")),
+            safe_float(getattr(data, f"{prefix}Commissions", "0")),
+            safe_float(getattr(data, f"{prefix}Insurance", "0")),
+            safe_float(getattr(data, f"{prefix}Legal", "0")),
+            safe_float(getattr(data, f"{prefix}Management", "0")),
+            safe_float(getattr(data, f"{prefix}MortgageInterest", "0")),
+            safe_float(getattr(data, f"{prefix}OtherInterest", "0")),
+            safe_float(getattr(data, f"{prefix}Repairs", "0")),
+            safe_float(getattr(data, f"{prefix}Supplies", "0")),
+            safe_float(getattr(data, f"{prefix}Taxes", "0")),
+            safe_float(getattr(data, f"{prefix}Utilities", "0")),
+            safe_float(getattr(data, f"{prefix}Depreciation", "0"))
+        ]
+        total_expenses += sum(expenses)
+    
+    net_income = total_income - total_expenses
+    
+    return {
+        "total_income": total_income,
+        "total_expenses": total_expenses,
+        "net_income": net_income
+    }
+
+def create_schedule_c_fallback_pdf(data: ScheduleCData, output_path: str) -> bool:
     if not REPORTLAB_AVAILABLE:
         return False
     
@@ -287,9 +417,103 @@ def create_fallback_pdf(data: ScheduleCData, output_path: str) -> bool:
         logger.error(f"Error creating fallback PDF: {e}")
         return False
 
-def fill_pdf_template(template_path: str, output_path: str, data: ScheduleCData) -> bool:
+def create_schedule_e_fallback_pdf(data: ScheduleEData, output_path: str) -> bool:
+    if not REPORTLAB_AVAILABLE:
+        return False
+    
+    try:
+        c = canvas.Canvas(output_path, pagesize=letter)
+        width, height = letter
+        
+        y_position = height - 50
+        
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(50, y_position, "Schedule E - Supplemental Income and Loss")
+        y_position -= 30
+        
+        c.setFont("Helvetica", 12)
+        c.drawString(50, y_position, f"Name: {data.name}")
+        y_position -= 20
+        c.drawString(50, y_position, f"SSN: {data.ssn}")
+        y_position -= 30
+        
+        # Property information
+        for i in range(1, 4):
+            prefix = f"property{i}"
+            property_type = getattr(data, f"{prefix}Type", "")
+            property_address = getattr(data, f"{prefix}Address", "")
+            
+            if property_type or property_address:
+                c.setFont("Helvetica-Bold", 14)
+                c.drawString(50, y_position, f"Property {i}")
+                y_position -= 20
+                
+                c.setFont("Helvetica", 12)
+                if property_type:
+                    c.drawString(50, y_position, f"Type: {property_type}")
+                    y_position -= 15
+                if property_address:
+                    c.drawString(50, y_position, f"Address: {property_address}")
+                    y_position -= 15
+                
+                # Income
+                rental_income = safe_float(getattr(data, f"{prefix}RentalIncome", "0"))
+                royalties = safe_float(getattr(data, f"{prefix}Royalties", "0"))
+                other_income = safe_float(getattr(data, f"{prefix}OtherIncome", "0"))
+                
+                if rental_income > 0 or royalties > 0 or other_income > 0:
+                    c.drawString(50, y_position, "Income:")
+                    y_position -= 15
+                    if rental_income > 0:
+                        c.drawString(70, y_position, f"Rental Income: ${rental_income:,.2f}")
+                        y_position -= 15
+                    if royalties > 0:
+                        c.drawString(70, y_position, f"Royalties: ${royalties:,.2f}")
+                        y_position -= 15
+                    if other_income > 0:
+                        c.drawString(70, y_position, f"Other Income: ${other_income:,.2f}")
+                        y_position -= 15
+                
+                # Expenses
+                expenses = [
+                    ("Advertising", getattr(data, f"{prefix}Advertising", "0")),
+                    ("Auto & Travel", getattr(data, f"{prefix}AutoTravel", "0")),
+                    ("Cleaning", getattr(data, f"{prefix}Cleaning", "0")),
+                    ("Insurance", getattr(data, f"{prefix}Insurance", "0")),
+                    ("Legal", getattr(data, f"{prefix}Legal", "0")),
+                    ("Management", getattr(data, f"{prefix}Management", "0")),
+                    ("Mortgage Interest", getattr(data, f"{prefix}MortgageInterest", "0")),
+                    ("Repairs", getattr(data, f"{prefix}Repairs", "0")),
+                    ("Supplies", getattr(data, f"{prefix}Supplies", "0")),
+                    ("Taxes", getattr(data, f"{prefix}Taxes", "0")),
+                    ("Utilities", getattr(data, f"{prefix}Utilities", "0")),
+                    ("Depreciation", getattr(data, f"{prefix}Depreciation", "0"))
+                ]
+                
+                total_expenses = 0
+                for expense_name, expense_amount in expenses:
+                    amount = safe_float(expense_amount)
+                    if amount > 0:
+                        total_expenses += amount
+                        c.drawString(70, y_position, f"{expense_name}: ${amount:,.2f}")
+                        y_position -= 15
+                
+                if total_expenses > 0:
+                    c.drawString(50, y_position, f"Total Expenses: ${total_expenses:,.2f}")
+                    y_position -= 20
+                
+                y_position -= 10
+        
+        c.save()
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error creating Schedule E fallback PDF: {e}")
+        return False
+
+def fill_schedule_c_pdf_template(template_path: str, output_path: str, data: ScheduleCData) -> bool:
     if not PDF_LIBRARY_AVAILABLE:
-        return create_fallback_pdf(data, output_path)
+        return create_schedule_c_fallback_pdf(data, output_path)
     
     try:
         template = PdfReader(template_path)
@@ -387,36 +611,129 @@ def fill_pdf_template(template_path: str, output_path: str, data: ScheduleCData)
         
     except Exception as e:
         logger.error(f"Error filling PDF template: {e}")
-        return create_fallback_pdf(data, output_path)
+        return create_schedule_c_fallback_pdf(data, output_path)
+
+def fill_schedule_e_pdf_template(template_path: str, output_path: str, data: ScheduleEData) -> bool:
+    if not PDF_LIBRARY_AVAILABLE:
+        return create_schedule_e_fallback_pdf(data, output_path)
+    
+    try:
+        template = PdfReader(template_path)
+        output = PdfWriter()
+        
+        # Field mappings for Schedule E based on actual PDF field names
+        field_mappings = {
+            # Personal Information (same as Schedule C)
+            '<FEFF00660031005F0031005B0030005D>': data.name,
+            '<FEFF00660031005F0032005B0030005D>': data.ssn,
+            
+            # Property 1 fields (f1_ prefix)
+            '<FEFF00660031005F0033005B0030005D>': data.property1Type,
+            '<FEFF00660031005F0034005B0030005D>': data.property1Address,
+            '<FEFF00660031005F0035005B0030005D>': data.property1City,
+            '<FEFF00660031005F0036005B0030005D>': data.property1State,
+            '<FEFF00660031005F0037005B0030005D>': data.property1ZipCode,
+            '<FEFF00660031005F0038005B0030005D>': data.property1RentalDays,
+            '<FEFF00660031005F0039005B0030005D>': data.property1PersonalDays,
+            '<FEFF00660031005F00310030005B0030005D>': data.property1RentalIncome,
+            '<FEFF00660031005F00310031005B0030005D>': data.property1Royalties,
+            '<FEFF00660031005F00310032005B0030005D>': data.property1OtherIncome,
+            '<FEFF00660031005F00310033005B0030005D>': data.property1Advertising,
+            '<FEFF00660031005F00310034005B0030005D>': data.property1AutoTravel,
+            '<FEFF00660031005F00310035005B0030005D>': data.property1Cleaning,
+            '<FEFF00660031005F00310036005B0030005D>': data.property1Commissions,
+            '<FEFF00660031005F00310037005B0030005D>': data.property1Insurance,
+            '<FEFF00660031005F00310038005B0030005D>': data.property1Legal,
+            '<FEFF00660031005F00310039005B0030005D>': data.property1Management,
+            '<FEFF00660031005F00320030005B0030005D>': data.property1MortgageInterest,
+            '<FEFF00660031005F00320031005B0030005D>': data.property1OtherInterest,
+            '<FEFF00660031005F00320032005B0030005D>': data.property1Repairs,
+            '<FEFF00660031005F00320033005B0030005D>': data.property1Supplies,
+            '<FEFF00660031005F00320034005B0030005D>': data.property1Taxes,
+            '<FEFF00660031005F00320035005B0030005D>': data.property1Utilities,
+            '<FEFF00660031005F00320036005B0030005D>': data.property1Depreciation,
+            
+            # Property 2 fields (f2_ prefix)
+            '<FEFF00660032005F0031005B0030005D>': data.property2Type,
+            '<FEFF00660032005F0032005B0030005D>': data.property2Address,
+            '<FEFF00660032005F0033005B0030005D>': data.property2City,
+            '<FEFF00660032005F0034005B0030005D>': data.property2State,
+            '<FEFF00660032005F0035005B0030005D>': data.property2ZipCode,
+            '<FEFF00660032005F0036005B0030005D>': data.property2RentalDays,
+            '<FEFF00660032005F0037005B0030005D>': data.property2PersonalDays,
+            '<FEFF00660032005F0038005B0030005D>': data.property2RentalIncome,
+            '<FEFF00660032005F0039005B0030005D>': data.property2Royalties,
+            '<FEFF00660032005F00310030005B0030005D>': data.property2OtherIncome,
+            '<FEFF00660032005F00310031005B0030005D>': data.property2Advertising,
+            '<FEFF00660032005F00310032005B0030005D>': data.property2AutoTravel,
+            '<FEFF00660032005F00310033005B0030005D>': data.property2Cleaning,
+            '<FEFF00660032005F00310034005B0030005D>': data.property2Commissions,
+            '<FEFF00660032005F00310035005B0030005D>': data.property2Insurance,
+            '<FEFF00660032005F00310036005B0030005D>': data.property2Legal,
+            '<FEFF00660032005F00310037005B0030005D>': data.property2Management,
+            '<FEFF00660032005F00310038005B0030005D>': data.property2MortgageInterest,
+            '<FEFF00660032005F00310039005B0030005D>': data.property2OtherInterest,
+            '<FEFF00660032005F00320030005B0030005D>': data.property2Repairs,
+            '<FEFF00660032005F00320031005B0030005D>': data.property2Supplies,
+            '<FEFF00660032005F00320032005B0030005D>': data.property2Taxes,
+            '<FEFF00660032005F00320033005B0030005D>': data.property2Utilities,
+            '<FEFF00660032005F00320034005B0030005D>': data.property2Depreciation,
+        }
+        
+        filled_fields = 0
+        for page in template.pages:
+            if '/Annots' in page:
+                for annot in page['/Annots']:
+                    if annot['/Subtype'] == '/Widget':
+                        field_name = annot['/T']
+                        if field_name in field_mappings:
+                            value = field_mappings[field_name]
+                            if value:
+                                annot.update(PdfDict(V=str(value)))
+                                filled_fields += 1
+        
+        output.addpage(template.pages[0])
+        if len(template.pages) > 1:
+            output.addpage(template.pages[1])
+        
+        output.write(output_path)
+        logger.info(f"Filled {filled_fields} fields in Schedule E PDF")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error filling Schedule E PDF template: {e}")
+        return create_schedule_e_fallback_pdf(data, output_path)
 
 @app.get("/")
 async def root():
-    return {"message": "Schedule C Generator API", "status": "running"}
+    return {"message": "Tax Form Generator API", "status": "running"}
 
 @app.get("/health")
 async def health_check():
-    template_path = Path(__file__).parent / "f1040sc.pdf"
+    schedule_c_template = Path(__file__).parent / "f1040sc.pdf"
+    schedule_e_template = Path(__file__).parent / "schedule-e.pdf"
     return {
         "status": "healthy",
         "pdf_library": PDF_LIBRARY_AVAILABLE,
         "reportlab": REPORTLAB_AVAILABLE,
-        "template_exists": template_path.exists()
+        "schedule_c_template_exists": schedule_c_template.exists(),
+        "schedule_e_template_exists": schedule_e_template.exists()
     }
 
-@app.post("/generate-pdf")
-async def generate_pdf(data: ScheduleCData):
+@app.post("/generate-schedule-c")
+async def generate_schedule_c_pdf(data: ScheduleCData):
     try:
         template_path = Path(__file__).parent / "f1040sc.pdf"
         if not template_path.exists():
-            raise HTTPException(status_code=404, detail="PDF template not found")
+            raise HTTPException(status_code=404, detail="Schedule C PDF template not found")
         
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
             output_path = tmp_file.name
         
-        success = fill_pdf_template(str(template_path), output_path, data)
+        success = fill_schedule_c_pdf_template(str(template_path), output_path, data)
         
         if not success:
-            raise HTTPException(status_code=500, detail="Failed to generate PDF")
+            raise HTTPException(status_code=500, detail="Failed to generate Schedule C PDF")
         
         return FileResponse(
             output_path,
@@ -426,8 +743,39 @@ async def generate_pdf(data: ScheduleCData):
         )
         
     except Exception as e:
-        logger.error(f"Error generating PDF: {e}")
+        logger.error(f"Error generating Schedule C PDF: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/generate-schedule-e")
+async def generate_schedule_e_pdf(data: ScheduleEData):
+    try:
+        template_path = Path(__file__).parent / "schedule-e.pdf"
+        if not template_path.exists():
+            raise HTTPException(status_code=404, detail="Schedule E PDF template not found")
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+            output_path = tmp_file.name
+        
+        success = fill_schedule_e_pdf_template(str(template_path), output_path, data)
+        
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to generate Schedule E PDF")
+        
+        return FileResponse(
+            output_path,
+            media_type="application/pdf",
+            filename="schedule_e_report.pdf",
+            background=None
+        )
+        
+    except Exception as e:
+        logger.error(f"Error generating Schedule E PDF: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Keep the old endpoint for backward compatibility
+@app.post("/generate-pdf")
+async def generate_pdf(data: ScheduleCData):
+    return await generate_schedule_c_pdf(data)
 
 if __name__ == "__main__":
     import uvicorn

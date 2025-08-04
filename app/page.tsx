@@ -1,4 +1,4 @@
-import { ScheduleCForm } from "@/components/schedule-c-form"
+import { TemplateSelection } from "@/components/template-selection"
 
 export default function Home() {
   return (
@@ -11,14 +11,13 @@ export default function Home() {
             </svg>
           </div>
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            Schedule C Generator
+            Tax Form Generator
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Generate your IRS Schedule C (Form 1040) tax report with ease. 
-            Fill out your business income and expenses to create a professional PDF document.
+            Generate your IRS tax forms with ease. Choose from Schedule C (Business) or Schedule E (Rental Income) to create professional PDF documents.
           </p>
         </div>
-        <ScheduleCForm />
+        <TemplateSelection />
       </div>
     </main>
   )

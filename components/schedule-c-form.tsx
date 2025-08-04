@@ -186,7 +186,7 @@ export function ScheduleCForm() {
     status: string;
     pdf_library_available: boolean;
     reportlab_available: boolean;
-    template_exists: boolean;
+    schedule_c_template_exists: boolean;
   } | null>(null)
 
   const testConnection = async () => {
@@ -383,7 +383,7 @@ export function ScheduleCForm() {
     try {
       console.log("Sending data to backend:", formData)
 
-      const response = await fetch("http://localhost:9000/generate-pdf", {
+      const response = await fetch("http://localhost:9000/generate-schedule-c", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -489,8 +489,8 @@ export function ScheduleCForm() {
 
           {serverInfo && (
             <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                              <p>Template found: {serverInfo.template_exists ? "✅ Yes" : "❌ No"}</p>
-                {!serverInfo.template_exists && (
+                              <p>Template found: {serverInfo.schedule_c_template_exists ? "✅ Yes" : "❌ No"}</p>
+                {!serverInfo.schedule_c_template_exists && (
                 <p className="text-red-600 dark:text-red-400">Download f1040sc.pdf and place it in the scripts folder</p>
               )}
             </div>
